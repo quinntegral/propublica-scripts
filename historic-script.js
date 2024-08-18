@@ -11,11 +11,31 @@ async function fetchApiData(url) {
     return await response.json();
 }
 
-// helper to 
-function getFilingData(einData) {
-    if (einData.filings_with_data.length <= 0) return null;
-                // add filing data to new record
-            // function for withData, 990, 990PF, or 990EZ
+// helper to add applicable filing data based on form type
+function getFilingData(filing) {
+    switch(filing.formtype) {
+        case 0: // 990
+            return {
+                'Total Assets' : filing.totassetsend,
+                'Total Expenses' : filing.totfuncexpns,
+                'Total Revenue' : filing.totrevenue
+            }
+        case 1: // 990EZ
+            return {
+                'Total Assets' : filing.totassetsend,
+                'Total Expenses' : filing.totexpns,
+                'Total Revenue' : filing.totrevnue
+            }
+        case 2: // 990PF
+            return {
+                'Total Assets' : filing.totassetsend,
+                'Total Expenses' : filing.totexpnspbks,
+                'Total Revenue' : filing.totrcptperbks,
+                'Total Exempt Expenses' : filing.totexpnsexempt
+            }
+        default:
+            return null
+    }
 }
 
 // helper to find most recent filing with a pdf_url, using 2 pointers
@@ -47,8 +67,6 @@ function getLatestPdf(einData) {
     return null;
 }
 
-
-
 // function to process each record
 async function processFunderRecord(record) {
     if (record.name === "") return;
@@ -66,7 +84,8 @@ async function processFunderRecord(record) {
         let einData = await fetchApiData(einUrl);
 
         // synthesize query results
-        filingData = getFilingData(einData.filings_with_data[0]);
+        if (einData.filings_with_data[0])
+            filingData = getFilingData(einData.filings_with_data[0]);
         latestPdf = getLatestPdf(einData);
 
         // make and add new record
@@ -80,7 +99,7 @@ async function processFunderRecord(record) {
             'NTEE Code': org.ntee
         };
 
-        newRecord = Object.assign(filingData, latestPdf);
+        newRecord = Object.assign(newRecord, filingData, latestPdf);
 
         await nonprofitsTable.createRecordAsync(newRecord);
     }

@@ -4,7 +4,7 @@ const fundersTable = base.getTable('Funders');
 
 // helper to fetch API data
 async function fetchApiData(url) {
-    let response = await remoteFetchAsync(url);
+    let response = await fetch(url);
     return await response.json();
 }
 
